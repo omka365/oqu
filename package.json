@@ -1,0 +1,11 @@
+{
+  "name": "oqu",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "mobile": "npm --workspace @oqu/mobile run start",
+    "server": "npm run dev --workspace @oqu/server",
+    "typecheck": "npm run typecheck --workspace @oqu/contracts && npm run typecheck --workspace @oqu/server && npm run typecheck --workspace @oqu/mobile"
+  }
+}

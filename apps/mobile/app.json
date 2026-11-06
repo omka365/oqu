@@ -1,0 +1,3 @@
+{
+  "expo": { "name": "Oqu", "slug": "oqu", "scheme": "oqu", "android": { "package": "com.oqu.study" }, "ios": { "bundleIdentifier": "com.oqu.study" }, "version": "0.1.0", "orientation": "portrait", "plugins": ["expo-router", "expo-document-picker", "expo-image-picker"], "experiments": { "typedRoutes": false } }
+}

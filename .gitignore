@@ -1,0 +1,11 @@
+node_modules/
+.pnpm-store/
+dist/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.expo/
+.expo-test/
+.expo-web-test/
+apps/server/.env
