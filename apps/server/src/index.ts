@@ -48,18 +48,31 @@ app.post('/api/generate', async (req, reply) => {
     if (text.trim()) userContent.push({ type: 'text', text: text.slice(0, 30_000) });
     if (filePart && filePart.mimetype.startsWith('image/')) {
       userContent.push({ type: 'image_url', image_url: { url: `data:${filePart.mimetype};base64,${filePart.buffer.toString('base64')}` } });
-    } else if (filePart) {
-      userContent.push({ type: 'text', text: `PDF-файл «${sourceName}» загружен. Если в нём нет переданного текста, сообщи, что нужен текстовый слой или вставка текста.` });
     }
 
-    const completion = await client.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini', response_format: { type: 'json_object' }, temperature: 0.2,
-      messages: [
-        { role: 'system', content: 'Ты создаёшь учебные материалы. Возвращай JSON: title, summary, cards[{id,question,answer}], questions[{id,question,options[4],correctIndex,explanation}], language. Не выдумывай факты. Нужны 3-12 карточек и 2-8 вопросов.' },
-        { role: 'user', content: userContent }
-      ]
-    });
-    const raw = JSON.parse(completion.choices[0]?.message?.content || '{}');
+    const instructions = 'Ты создаёшь учебные материалы. Возвращай JSON: title, summary, cards[{id,question,answer}], questions[{id,question,options[4],correctIndex,explanation}], language. Не выдумывай факты. Нужны 3-12 карточек и 2-8 вопросов. Если материал на изображении или PDF-скане, сначала распознай весь доступный текст (OCR), затем используй только его.';
+    let raw: any;
+    if (filePart?.mimetype === 'application/pdf') {
+      const response = await client.responses.create({
+        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        instructions,
+        input: [{ role: 'user', content: [
+          { type: 'input_text', text: `Язык результата: ${language}. Создай учебный набор по PDF «${sourceName}». Распознай текстовые страницы и страницы-сканы.` },
+          { type: 'input_file', filename: sourceName, file_data: `data:application/pdf;base64,${filePart.buffer.toString('base64')}` }
+        ] }],
+        text: { format: { type: 'json_object' } }
+      });
+      raw = JSON.parse(response.output_text || '{}');
+    } else {
+      const completion = await client.chat.completions.create({
+        model: process.env.OPENAI_MODEL || 'gpt-4o-mini', response_format: { type: 'json_object' }, temperature: 0.2,
+        messages: [
+          { role: 'system', content: instructions },
+          { role: 'user', content: userContent }
+        ]
+      });
+      raw = JSON.parse(completion.choices[0]?.message?.content || '{}');
+    }
     // IDs belong to the application; models may return numeric or missing IDs.
     const withIds = (items: unknown) => Array.isArray(items)
       ? items.map(item => item && typeof item === 'object' ? { ...item, id: randomUUID() } : item)
